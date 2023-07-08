@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://unpkg.com/react@^16/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16.13.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+    // 3 Fibers
+
+    function createElement(type, props, ...children) {
+      return {
+        type,
+        props: {
+          ...props,
+          children: children.map(child => (
+            typeof child === 'object'
+              ? child
+              : createTextElement(child)
+          )),
+        }
+      }
+    }
+
+    function createTextElement(text) {
+      return {
+        type: 'TEXT_ELEMENT',
+        props: {
+          nodeValue: text,
+          children: [],
+        }
+      }
+    }
+
+    function createDom(fiber) {
+      const dom =
+        fiber.type === 'TEXT_ELEMENT'
+          ? document.createTextNode("")
+          : document.createElement(fiber.type)
+
+      const isProperity = key => key !== 'children'
+      Object.keys(fiber.props)
+        .filter(isProperity)
+        .forEach(name => {
+          dom[name] = fiber.props[name]
+        })
+      return dom
+    }
+
+    let nextUnitOfWork = null
+
+    function render(element, container) {
+      // 这个是根fiber节点
+      nextUnitOfWork = {
+        dom: container,
+        props: {
+          children: [element]
+        },
+      }
+    }
+
+    requestIdleCallback(workLoop)
+
+    function workLoop(deadline) { // 一帧中的剩余时间
+      console.log('开始一帧中的空闲时间')
+      let shouldYield = false
+      while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
+        nextUnitOfWork = performUnitOfWork(
+          nextUnitOfWork
+        )
+        shouldYield = deadline.timeRemaining() < 1 // 剩余的空闲时间不够了，就结束循环
+      }
+      requestIdleCallback(workLoop) // 发起下一个workLoop
+    }
+
+    // fiber是在element上增加了child、parent、sibling、dom属性
+    // 总体上：一边遍历element，一边生成新的dom节点并且添加到其父节点
+    function performUnitOfWork(fiber) { 
+      // 添加dom节点，把本身的dom添加到父fiber的bom中去
+      if (!fiber.dom) {
+        fiber.dom = createDom(fiber)
+      }
+
+      if (fiber.parent) {
+        fiber.parent.dom.appendChild(fiber.dom)
+      }
+      console.log("遍历到fiber节点", fiber, "挂载", fiber.dom)
+      // 创建新的下一层的fiber
+      const elements = fiber.props.children
+      let index = 0
+      let prevSibling = null
+
+      while (index < elements.length) {
+        const element = elements[index]
+
+        const newFiber = {
+          type: element.type,
+          props: element.props,
+          parent: fiber,
+          dom: null
+        }
+
+        if (index === 0) {
+          fiber.child = newFiber
+        } else {
+          prevSibling.sibling = newFiber
+        }
+
+        prevSibling = newFiber
+        index++
+      }
+      // 返回下一个nextUnitOfWork，孩子=>下一个兄弟=>父亲的下一个兄弟(叔叔)，最后遍历完整个树后，返回的是undefined
+      if (fiber.child) {
+        return fiber.child
+      }
+      let nextFiber = fiber
+      while (nextFiber) {
+        if (nextFiber.sibling) {
+          return nextFiber.sibling
+        }
+        nextFiber = nextFiber.parent
+      }
+    }
+
+    const Dreact = {
+      createElement,
+      render,
+    }
+
+    /** @jsx Dreact.createElement */
+    const element = (
+      <div id='foo'>
+        <a>bars</a>
+        <b />
+      </div>
+    )
+    const container = document.getElementById('root')
+    Dreact.render(element, container)
+
+  </script>
+
+</body>
+
+</html>

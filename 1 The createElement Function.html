@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://unpkg.com/react@^16/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16.13.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+    // 1 createElement函数
+
+    function createElement(type, props, ...children) {
+      return {
+        type,
+        props: {
+          ...props,
+          children: children.map(child => (
+            typeof child === 'object'
+              ? child
+              : createTextElement(child)
+          )),
+        }
+      }
+    }
+
+    function createTextElement(text) {
+      return {
+        type: 'TEXT_ELEMENT',
+        props: {
+          nodeValue: text,
+          children: [],
+        }
+      }
+    }
+
+    const Dreact = {
+      createElement,
+    }
+
+    const element1 = Dreact.createElement(
+      'div',
+      { id: 'foo' },
+      Dreact.createElement('a', null, 'bar'),
+      Dreact.createElement('b')
+    )
+
+    /** @jsx Dreact.createElement */
+    const element2 = (
+      <div id='foo'>
+        <a>bar</a>
+        <b />
+      </div>
+    )
+    console.log(element1,element2) // 解析出来的效果一样
+
+  </script>
+
+</body>
+
+</html>

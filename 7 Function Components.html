@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://unpkg.com/react@^16/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16.13.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+    // 0 导论
+
+    // const element = <h1>aaaaaaaaaa</h1>
+    // const element = React.createElement('h1', {title: 'foo'}, 'hhhh')
+    // const container = document.getElementById("root")
+    // ReactDOM.render(element, container)
+
+    // const element = { // JSX元素会被这样描述
+    //   type: "h1",
+    //   props: {
+    //     title: "foo",
+    //     children: "Hello",
+    //   },
+    // }
+    // const node = document.createElement(element.type)
+    // node['title'] = element.props.title
+    // const text = document.createTextNode("")
+    // text['nodeValue'] = element.props.children
+    // node.appendChild(text)
+    // const container = document.getElementById('root')
+    // container.appendChild(node)
+
+    // 1 createElement函数
+
+    // function createElement(type, props, ...children) {
+    //   return {
+    //     type,
+    //     props: {
+    //       ...props,
+    //       children: children.map(child => (
+    //         typeof child === 'object'
+    //           ? child
+    //           : createTextElement(child)
+    //       )),
+    //     }
+    //   }
+    // }
+
+    // function createTextElement(text) {
+    //   return {
+    //     type: 'TEXT_ELEMENT',
+    //     props: {
+    //       nodeValue: text,
+    //       children: [],
+    //     }
+    //   }
+    // }
+
+    // const Dreact = {
+    //   createElement,
+    // }
+
+    // const element1 = Dreact.createElement(
+    //   'div',
+    //   { id: 'foo' },
+    //   Dreact.createElement('a', null, 'bar'),
+    //   Dreact.createElement('b')
+    // )
+
+    // /** @jsx Dreact.createElement */
+    // const element2 = (
+    //   <div id='foo'>
+    //     <a>bar</a>
+    //     <b />
+    //   </div>
+    // )
+    // console.log(element1,element2) // 解析出来的效果一样
+
+    // 3 render函数
+
+    // function createElement(type, props, ...children) {
+    //   return {
+    //     type,
+    //     props: {
+    //       ...props,
+    //       children: children.map(child => (
+    //         typeof child === 'object'
+    //           ? child
+    //           : createTextElement(child)
+    //       )),
+    //     }
+    //   }
+    // }
+
+    // function createTextElement(text) {
+    //   return {
+    //     type: 'TEXT_ELEMENT',
+    //     props: {
+    //       nodeValue: text,
+    //       children: [],
+    //     }
+    //   }
+    // }
+
+    // function render(element, container) {
+    //   const dom = element.type === 'TEXT_ELEMENT' ? document.createTextNode("") : document.createElement(element.type)
+    //   const isKey = key => key !== 'children'
+    //   Object.keys(element.props)
+    //     .filter(isKey)
+    //     .forEach(name => {
+    //       dom[name] = element.props[name]
+    //     })
+    //   element.props.children.forEach(child => render(child, dom)) // 对每一层子节点做递归
+    //   container.appendChild(dom)
+    // }
+
+    // const Dreact = {
+    //   createElement,
+    //   render,
+    // }
+
+    // /** @jsx Dreact.createElement */
+    // const element = (
+    //   <div id='foo'>
+    //     <a>bars</a>
+    //     <b />
+    //   </div>
+    // )
+    // const container = document.getElementById('root')
+    // Dreact.render(element, container)
+
+    // 4 Concurrent Mode
+
+    function createElement(type, props, ...children) {
+      return {
+        type,
+        props: {
+          ...props,
+          children: children.map(child => (
+            typeof child === 'object'
+              ? child
+              : createTextElement(child)
+          )),
+        }
+      }
+    }
+
+    function createTextElement(text) {
+      return {
+        type: 'TEXT_ELEMENT',
+        props: {
+          nodeValue: text,
+          children: [],
+        }
+      }
+    }
+
+    function render(element, container) {
+      const dom = element.type === 'TEXT_ELEMENT' ? document.createTextNode("") : document.createElement(element.type)
+      const isKey = key => key !== 'children'
+      Object.keys(element.props)
+        .filter(isKey)
+        .forEach(name => {
+          dom[name] = element.props[name]
+        })
+      element.props.children.forEach(child => render(child, dom)) // 对每一层子节点做递归
+      container.appendChild(dom)
+    }
+
+    const Dreact = {
+      createElement,
+      render,
+    }
+
+    /** @jsx Dreact.createElement */
+    const element = (
+      <div id='foo'>
+        <a>bars</a>
+        <b />
+      </div>
+    )
+    const container = document.getElementById('root')
+    Dreact.render(element, container)
+
+    let nextUnitOfWork = 11
+
+    function workLoop(deadline) { // 一帧中的剩余时间
+      let shouldYield = false
+      while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
+        nextUnitOfWork = performUnitOfWork(
+          nextUnitOfWork
+        )
+        shouldYield = deadline.timeRemaining() < 1 // 剩余的空闲时间不够了，就结束循环
+      }
+      requestIdleCallback(workLoop) // 发起下一个workLoop
+    }
+
+    requestIdleCallback(workLoop)
+
+    function performUnitOfWork(nextUnitOfWork) {
+      // TODO
+      return 1
+    }
+
+
+  </script>
+
+</body>
+
+</html>

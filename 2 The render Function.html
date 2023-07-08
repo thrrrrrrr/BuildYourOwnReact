@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://unpkg.com/react@^16/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@16.13.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+
+    // 2 render函数
+
+    function createElement(type, props, ...children) {
+      return {
+        type,
+        props: {
+          ...props,
+          children: children.map(child => (
+            typeof child === 'object'
+              ? child
+              : createTextElement(child)
+          )),
+        }
+      }
+    }
+
+    function createTextElement(text) {
+      return {
+        type: 'TEXT_ELEMENT',
+        props: {
+          nodeValue: text,
+          children: [],
+        }
+      }
+    }
+
+    function render(element, container) {
+      const dom = element.type === 'TEXT_ELEMENT' ? document.createTextNode("") : document.createElement(element.type)
+      const isKey = key => key !== 'children'
+      Object.keys(element.props)
+        .filter(isKey)
+        .forEach(name => {
+          dom[name] = element.props[name]
+        })
+      element.props.children.forEach(child => render(child, dom)) // 对每一层子节点做递归
+      container.appendChild(dom)
+    }
+
+    const Dreact = {
+      createElement,
+      render,
+    }
+
+    /** @jsx Dreact.createElement */
+    const element = (
+      <div id='foo'>
+        <a>bars</a>
+        <b />
+      </div>
+    )
+    const container = document.getElementById('root')
+    Dreact.render(element, container)
+
+
+  </script>
+
+</body>
+
+</html>
