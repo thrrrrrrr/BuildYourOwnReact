@@ -12,6 +12,7 @@
 </head>
 
 <body>
+  <button id="botton">Click</button>
   <div id="root"></div>
   <script type="text/babel">
 
@@ -91,8 +92,10 @@
 
     function commitRoot() {
       // 把需要删除的oldFiber也提交上去
+      console.log(deletions)
       deletions.forEach(commitWork)
       // wipRoot nodes添加到dom中
+      console.log('✔✔✔commit阶段,渲染整棵wipFiber树')
       commitWork(wipRoot.child)
       currentRoot = wipRoot
       wipRoot = null
@@ -102,16 +105,18 @@
       if (!fiber) {
         return
       }
-      console.log('递归遍历wipRoot树,挂载真实dom,并更新属性')
       const domParent = fiber.parent.dom
       if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
         domParent.appendChild(fiber.dom)
       } else if (fiber.effectTag === 'DELETION') {
-        domParent.removeChild(fiber.dom)
+        // 此处可能在递归中已经被删除，再删除就报错，因此做了个兜底
+        if (domParent.contains(fiber.dom)) { 
+          domParent.removeChild(fiber.dom)
+        } 
       } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
         updateDom(fiber.dom, fiber.alternate.props, fiber.props)
       }
-      
+
       commitWork(fiber.child)
       commitWork(fiber.sibling)
     }
@@ -135,7 +140,7 @@
     let deletions = null // 记录旧的fiber树上需要删除的节点
 
     function workLoop(deadline) { // 一帧中的剩余时间
-      console.log('开始一帧中的空闲时间')
+      console.log('进入一帧中的空闲时间')
       let shouldYield = false
       while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
         nextUnitOfWork = performUnitOfWork(
@@ -156,6 +161,9 @@
     // fiber是在element上增加了child、parent、sibling、dom属性
     // 总体上：一边遍历element，一边生成新的dom节点并且添加到其父节点
     function performUnitOfWork(fiber) {
+
+      console.log('遍历并构建wipFiber节点:', fiber.type || 'root')
+
       // 1. 添加dom节点，把本身的dom添加到父fiber的bom中去
       if (!fiber.dom) {
         fiber.dom = createDom(fiber)
@@ -165,7 +173,6 @@
       //   fiber.parent.dom.appendChild(fiber.dom)
       // } 被提出到render了
       // console.log("遍历到fiber节点", fiber, "挂载", fiber.dom) // fiber.dom这个地方是异步的么？？？
-      console.log('构建wip树', fiber)
 
       // 2. 创建新的下一层的fiber
       const elements = fiber.props.children
@@ -199,7 +206,8 @@
         const sameType = oldFiber && element && oldFiber.type == element.type
 
         if (sameType) {
-          // 更新节点，复用旧的dom
+          // 更新节点，复用旧的dom，适用于完全不变化和属性变化两种情况，新属性会在挂载的时候进行刷新
+          console.log('▶新子节点(更新):', element.type)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -211,6 +219,7 @@
         }
         if (element && !sameType) {
           // 添加这个节点
+          console.log('▶新子节点(添加):', element.type)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -222,16 +231,26 @@
         }
         if (oldFiber && !sameType) {
           // 删除这个节点
+          console.log('▶新子节点(删除):', oldFiber.type)
           oldFiber.effectTag = 'DELETION'
           deletions.push(oldFiber)
         }
+        console.log("+++++", oldFiber)
 
-        if (oldFiber) oldFiber = oldFiber.sibling
         if (index === 0) {
-          wipRoot.child = newFiber
+          wipFiber.child = newFiber
         } else {
-          prevSibling.sibling = newFiber
+          console.log("b", prevSibling)
+          if (prevSibling != null) {
+            prevSibling.sibling = newFiber
+          }
+          console.log("a")
         }
+
+        if (oldFiber) {
+          oldFiber = oldFiber.sibling
+        }
+
         prevSibling = newFiber
         index++
       }
@@ -243,14 +262,63 @@
     }
 
     /** @jsx Dreact.createElement */
-    const element = (
+    const element1 = (
       <div id='foo'>
-        <a>bars</a>
+        <a>
+          dsf
+          <h3>asfd</h3>
+          </a>
         <b />
+        sdf
       </div>
     )
+
+    /** @jsx Dreact.createElement */
+    const element2 = (
+      <div id='foo'>
+        <a>bars2</a>
+        <b id='1' />
+        asfd
+        <h2>asdfa</h2>
+      </div>
+    )
+
+    /** @jsx Dreact.createElement */
+    const element3 = (
+      <div id='foo'>
+        <a>bar1</a>
+        <a>bar2</a>
+        <a>bar3</a>
+        <h1>sdfa</h1>
+      </div>
+    )
+
+    /** @jsx Dreact.createElement */
+    const button = (
+      <div id='foo'>
+        <button onclick={onClick}>Click</button>
+      </div>
+    )
+
     const container = document.getElementById('root')
-    Dreact.render(element, container)
+    const botton = document.getElementById('botton')
+    botton.addEventListener('click', onClick)
+
+
+    let n = 0
+    function onClick() {
+      console.log("=========================================================================================================")
+      if (n === 0) {
+        Dreact.render(element1, container)
+      } else if (n === 1) {
+        Dreact.render(element2, container)
+      } else {
+        Dreact.render(element3, container)
+      }
+      n = (n + 1) % 3
+    }
+
+    // element是React元素，render生成fiber树，commit才会将fiber树挂载并渲染
 
   </script>
 
