@@ -92,7 +92,6 @@
 
     function commitRoot() {
       // 把需要删除的oldFiber也提交上去
-      console.log(deletions)
       deletions.forEach(commitWork)
       // wipRoot nodes添加到dom中
       console.log('✔✔✔commit阶段,渲染整棵wipFiber树')
@@ -235,16 +234,14 @@
           oldFiber.effectTag = 'DELETION'
           deletions.push(oldFiber)
         }
-        console.log("+++++", oldFiber)
 
         if (index === 0) {
           wipFiber.child = newFiber
         } else {
-          console.log("b", prevSibling)
+          // 需判空 否则删除的时候旧fiber树上的兄弟节点会将prevSibling变成null
           if (prevSibling != null) {
             prevSibling.sibling = newFiber
           }
-          console.log("a")
         }
 
         if (oldFiber) {
