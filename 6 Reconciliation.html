@@ -108,7 +108,7 @@
       if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
         domParent.appendChild(fiber.dom)
       } else if (fiber.effectTag === 'DELETION') {
-        // 此处可能在递归中已经被删除，再删除就报错，因此做了个兜底
+        // BUG: (在后面的版本中此段逻辑重构，无此bug)此处可能在递归中已经被删除，再删除就报错，因此做了个兜底
         if (domParent.contains(fiber.dom)) { 
           domParent.removeChild(fiber.dom)
         } 

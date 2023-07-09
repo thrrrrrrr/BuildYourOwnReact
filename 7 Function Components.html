@@ -94,7 +94,7 @@
       // 把需要删除的oldFiber也提交上去
       deletions.forEach(commitWork)
       // wipRoot nodes添加到dom中
-      console.log('✔✔✔commit阶段,渲染整棵wipFiber树')
+      // console.log('✔✔✔commit阶段,渲染整棵wipFiber树')
       commitWork(wipRoot.child)
       currentRoot = wipRoot
       wipRoot = null
@@ -112,20 +112,23 @@
       const domParent = domParentFiber.dom
 
       if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
+        console.log("真实dom添加", fiber.dom)
         domParent.appendChild(fiber.dom)
       } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
+        console.log("真实dom更新", fiber.dom)
         updateDom(fiber.dom, fiber.alternate.props, fiber.props)
       } else if (fiber.effectTag === 'DELETION') {
+        console.log("真实dom删除")
         commitDeletion(fiber, domParent)
+        // BUG: 不能复用底下的递归！！！！！！不然重复添加子fiber，本来被删除的父fiber，他的子fiber又被挂载上去了
+        return
       }
-
       commitWork(fiber.child)
       commitWork(fiber.sibling)
     }
 
     function commitDeletion(fiber, domParent) {
       if (fiber.dom) {
-        console.log("删除",domParent.contains(fiber.dom),  domParent, fiber.dom)
         domParent.removeChild(fiber.dom)
 
       } else {
@@ -256,7 +259,7 @@
         if (index === 0) {
           wipFiber.child = newFiber
         } else {
-          // 需判空 否则删除的时候旧fiber树上的兄弟节点会将prevSibling变成null
+          // BUG: 需判空 否则删除的时候旧fiber树上的兄弟节点会将prevSibling变成null
           if (prevSibling != null) {
             prevSibling.sibling = newFiber
           }
@@ -277,26 +280,26 @@
     }
 
     /** @jsx Dreact.createElement */
-    function App(props){
+    function App(props) {
       return <h1>{props.text}</h1>
     }
 
     const element1 = (
-      <App text="CCC"/>
+      <App text="AAA" />
     )
 
     const element2 = (
       <a>
-        <App text="DDD"/>
+        <App text="BBB" />
       </a>
     )
 
     const element3 = (
       <a>
+        <App text="CCC" />
         <h3>
-          <App text="AAA" />
+          <App text="DDD" />
         </h3>
-        <App text="BBB" />
       </a>
     )
 
