@@ -71,7 +71,7 @@
     requestIdleCallback(workLoop)
 
     function workLoop(deadline) { // 一帧中的剩余时间
-      console.log('开始一帧中的空闲时间')
+      console.log('▬▬▬▬▬▬▬▬进入一帧中的空闲时间▬▬▬▬▬▬▬▬')
       let shouldYield = false
       while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
         nextUnitOfWork = performUnitOfWork(
@@ -93,7 +93,7 @@
       if (fiber.parent) {
         fiber.parent.dom.appendChild(fiber.dom)
       }
-      console.log("遍历到fiber节点", fiber, "挂载", fiber.dom)
+      console.log("遍历到fiber节点", fiber, "挂载到真实dom", fiber.dom)
       // 创建新的下一层的fiber
       const elements = fiber.props.children
       let index = 0

@@ -12,7 +12,6 @@
 </head>
 
 <body>
-  <button id="button">Click</button>
   <div id="root"></div>
   <script type="text/babel">
 
@@ -42,25 +41,32 @@
       }
     }
 
+    const isEvent = key => key.startsWith("on")
+    const isProperty = key => key !== 'children' && !isEvent(key)
+    const isNew = (prev, next) => key => prev[key] !== next[key]
+    const isGone = (prev, next) => key => !(key in next)
+
     function createDom(fiber) {
       const dom =
         fiber.type === 'TEXT_ELEMENT'
           ? document.createTextNode("")
           : document.createElement(fiber.type)
-
-      const isProperty = key => key !== 'children'
+      // 赋予属性
       Object.keys(fiber.props)
         .filter(isProperty)
         .forEach(name => {
           dom[name] = fiber.props[name]
         })
+      // 添加监听器
+      Object.keys(fiber.props)
+        .filter(isEvent)
+        .forEach(name => {
+          const eventType = name.toLowerCase().substring(2)
+          dom.addEventListener(eventType, fiber.props[name])
+        })
       return dom
     }
 
-    const isEvent = key => key.startsWith("on")
-    const isProperty = key => key !== 'children' && !isEvent(key)
-    const isNew = (prev, next) => key => prev[key] !== next[key]
-    const isGone = (prev, next) => key => !(key in next)
     function updateDom(dom, prevProps, nextProps) {
       // 移除旧的dom上被删除的或者被改变的EventListener
       Object.keys(prevProps)
@@ -112,13 +118,13 @@
       const domParent = domParentFiber.dom
 
       if (fiber.effectTag === 'PLACEMENT' && fiber.dom != null) {
-        console.log("真实dom添加", fiber.dom)
+        console.log("█ 真实dom添加", fiber.dom)
         domParent.appendChild(fiber.dom)
       } else if (fiber.effectTag === 'UPDATE' && fiber.dom != null) {
-        console.log("真实dom更新", fiber.dom)
+        console.log("█ 真实dom更新", fiber.dom)
         updateDom(fiber.dom, fiber.alternate.props, fiber.props)
       } else if (fiber.effectTag === 'DELETION') {
-        console.log("真实dom删除")
+        console.log("█ 真实dom删除")
         commitDeletion(fiber, domParent)
         // BUG: 不能复用底下的递归！！！！！！不然重复添加子fiber，本来被删除的父fiber，他的子fiber又被挂载上去了
         return
@@ -155,7 +161,7 @@
     let deletions = null // 记录旧的fiber树上需要删除的节点
 
     function workLoop(deadline) { // 一帧中的剩余时间
-      console.log('进入一帧中的空闲时间')
+      console.log('▬▬▬▬▬▬▬▬进入一帧中的空闲时间▬▬▬▬▬▬▬▬')
       let shouldYield = false
       while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
         nextUnitOfWork = performUnitOfWork(
@@ -177,7 +183,7 @@
     // 总体上：一边遍历element，一边生成新的dom节点并且添加到其父节点
     function performUnitOfWork(fiber) {
 
-      console.log('遍历并构建wipFiber节点:', fiber)
+      console.log('正在遍历并构建新Fiber节点:', fiber)
 
       const isFunctionComponent = fiber.type instanceof Function
       if (isFunctionComponent) {
@@ -199,9 +205,54 @@
       }
     }
 
+    let wipFiber = null
+    let hookIndex = null
+
     function updateFunctionComponent(fiber) {
-      const children = [fiber.type(fiber.props)]
+      // 更新函数组件的时候，首先把全局的wipFiber和hookIndex更新，还有wipFiber.hooks置空
+      wipFiber = fiber
+      hookIndex = 0
+      wipFiber.hooks = []
+      const children = [fiber.type(fiber.props)] // 此处useState会被执行
       reconcileChildren(fiber, children)
+    }
+
+    function useState(initial) {
+      // 多个setState会生成多个hook，下一次render时，通过下标获取旧fiber中的某一个hook(包含state和action[])
+      const oldHook =
+        wipFiber.alternate &&
+        wipFiber.alternate.hooks &&
+        wipFiber.alternate.hooks[hookIndex]
+      // 新的render阶段，重新执行了一些useState，生成一些新的hook添加到组件fiber.hooks中
+      const hook = {
+        state: oldHook ? oldHook.state : initial,
+        queue: [] // 保存actions
+      }
+
+      const actions = oldHook ? oldHook.queue : []
+      actions.forEach(action => {
+        // 这个函数组件fiber某个hook.state，在render阶段被actions更新
+        hook.state = action(hook.state)
+      })
+
+      // 如果在外部调用了setState，那么这个新hook.queue将把这些setState的操作存到queue中，
+      // 然后马上更新wipRoot，下一个遍历的fiber设置成wipRoot，这样就会重新从上往下遍历wipRoot树，
+      // 因此多个setState连在一起，那么多个action加到queue中，下次render阶段一起更新新hook.state，
+      // 
+      const setState = action => {
+        hook.queue.push(action)
+        wipRoot = {
+          dom: currentRoot.dom,
+          props: currentRoot.props,
+          alternate: currentRoot,
+        }
+        nextUnitOfWork = wipRoot // 相当于触发重新渲染操作，只不过啥也没变，只是hook.state会在render阶段被重新计算
+        deletions = []
+      }
+
+      wipFiber.hooks.push(hook)
+      hookIndex++
+      return [hook.state, setState]
     }
 
     function updateHostComponent(fiber) {
@@ -227,7 +278,7 @@
 
         if (sameType) {
           // 更新节点，复用旧的dom，适用于完全不变化和属性变化两种情况，新属性会在挂载的时候进行刷新
-          console.log('▶新子节点(更新):', element)
+          console.log('    新子节点(更新):', element)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -239,7 +290,7 @@
         }
         if (element && !sameType) {
           // 添加这个节点
-          console.log('▶新子节点(添加):', element)
+          console.log('    新子节点(添加):', element)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -251,7 +302,7 @@
         }
         if (oldFiber && !sameType) {
           // 删除这个节点
-          console.log('▶新子节点(删除):', oldFiber)
+          console.log('    新子节点(删除):', oldFiber)
           oldFiber.effectTag = 'DELETION'
           deletions.push(oldFiber)
         }
@@ -277,42 +328,31 @@
     const Dreact = {
       createElement,
       render,
+      useState,
     }
 
     /** @jsx Dreact.createElement */
-    function App(props) {
-      return <h1>{props.text}</h1>
+    function Counter() {
+      let [state, setState] = Dreact.useState(1)
+
+      function add() {
+        // 仅有一次render+commit，下面3行代码全都执行，处于cpu繁忙，到后面一帧的空闲时间时，
+        // 才会遍历这些action，然后给新hook.state赋值，并真正渲染
+        setState(c => c + 1)
+        setState(c => c + 1)
+        setState(c => c + 1)
+      }
+      
+      return (
+        <button onClick={add}>
+          次数: {state}
+        </button>
+      )
     }
 
-    const element1 = (
-      <App text="AAA" />
-    )
-
-    const element2 = (
-      <a>
-        <App text="BBB" />
-      </a>
-    )
-
-    const element3 = (
-      <a>
-        <App text="CCC" />
-        <h3>
-          <App text="DDD" />
-        </h3>
-      </a>
-    )
-
-    const button = (
-      <div id='foo'>
-        <button onclick={onClick}>Click</button>
-      </div>
-    )
-
+    const element = <Counter />
     const container = document.getElementById('root')
-
-    Dreact.render(element1, container)
-
+    Dreact.render(element, container)
 
     // element是React元素，render生成fiber树，commit才会将fiber树挂载并渲染
 

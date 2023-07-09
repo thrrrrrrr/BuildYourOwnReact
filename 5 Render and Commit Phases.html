@@ -89,7 +89,7 @@
     let wipRoot = null // 这颗树收集dom节点的修改（work in progress root）
 
     function workLoop(deadline) { // 一帧中的剩余时间
-      console.log('开始一帧中的空闲时间')
+      console.log('▬▬▬▬▬▬▬▬进入一帧中的空闲时间▬▬▬▬▬▬▬▬')
       let shouldYield = false
       while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
         nextUnitOfWork = performUnitOfWork(
@@ -119,7 +119,7 @@
       //   fiber.parent.dom.appendChild(fiber.dom)
       // } 被提出到render了
       // console.log("遍历到fiber节点", fiber, "挂载", fiber.dom) // fiber.dom这个地方是异步的么？？？
-      console.log('构建wip树', fiber)
+      console.log('正在遍历并构建新Fiber节点:', fiber)
       // 2. 创建新的下一层的fiber
       const elements = fiber.props.children
       let index = 0

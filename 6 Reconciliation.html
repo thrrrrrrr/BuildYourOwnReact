@@ -139,7 +139,7 @@
     let deletions = null // 记录旧的fiber树上需要删除的节点
 
     function workLoop(deadline) { // 一帧中的剩余时间
-      console.log('进入一帧中的空闲时间')
+      console.log('▬▬▬▬▬▬▬▬进入一帧中的空闲时间▬▬▬▬▬▬▬▬')
       let shouldYield = false
       while (nextUnitOfWork && !shouldYield) { // 在这些时间内反复执行循环，每个循环称为一个事件
         nextUnitOfWork = performUnitOfWork(
@@ -161,7 +161,7 @@
     // 总体上：一边遍历element，一边生成新的dom节点并且添加到其父节点
     function performUnitOfWork(fiber) {
 
-      console.log('遍历并构建wipFiber节点:', fiber.type || 'root')
+      console.log('正在遍历并构建新Fiber节点:', fiber.type || 'root')
 
       // 1. 添加dom节点，把本身的dom添加到父fiber的bom中去
       if (!fiber.dom) {
@@ -206,7 +206,7 @@
 
         if (sameType) {
           // 更新节点，复用旧的dom，适用于完全不变化和属性变化两种情况，新属性会在挂载的时候进行刷新
-          console.log('▶新子节点(更新):', element.type)
+          console.log('    新子节点(更新):', element.type)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -218,7 +218,7 @@
         }
         if (element && !sameType) {
           // 添加这个节点
-          console.log('▶新子节点(添加):', element.type)
+          console.log('    新子节点(添加):', element.type)
           newFiber = {
             type: element.type,
             props: element.props,
@@ -230,7 +230,7 @@
         }
         if (oldFiber && !sameType) {
           // 删除这个节点
-          console.log('▶新子节点(删除):', oldFiber.type)
+          console.log('    新子节点(删除):', oldFiber.type)
           oldFiber.effectTag = 'DELETION'
           deletions.push(oldFiber)
         }
